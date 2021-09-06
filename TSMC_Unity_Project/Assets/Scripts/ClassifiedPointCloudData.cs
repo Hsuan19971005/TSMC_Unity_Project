@@ -5,7 +5,6 @@ using UnityEngine;
 public class ClassifiedPointCloudData : MonoBehaviour
 {
     public string id_name_ { get; set; }
-    public float radius_ { get; set; }
     public bool exist_ { get; set; }
     public float x_max_ { get; set; }
     public float x_min_ { get; set; }
@@ -17,7 +16,6 @@ public class ClassifiedPointCloudData : MonoBehaviour
     public ClassifiedPointCloudData()
     {
         this.points_ = new List<float[]>();
-        this.radius_ = 0.3f;
         this.exist_ = false;
     }
     public void SetMaxMin(List<float[]> points)

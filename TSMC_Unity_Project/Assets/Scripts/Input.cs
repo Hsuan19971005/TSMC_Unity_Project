@@ -17,7 +17,7 @@ public class Input : MonoBehaviour
     public List<FloorData> ifc_floor_data_ { get; set; }//樓層為基準之整體資訊
     public List<string> all_id_ { get; set; }//記錄所有待分析的ID名稱
     public GroundCutting ground_cutting_ { get; set; }//用以實現柱線分割地面點雲功能
-    public Input(string ifc_file_path, string real_points_path)
+    public Input(string ifc_file_path, string real_points_path ,string fbx_model_name)
     {
         this.real_points_ = new List<float[]>();
         this.classified_point_cloud_data_ = new List<ClassifiedPointCloudData>();
@@ -32,7 +32,8 @@ public class Input : MonoBehaviour
         SetIfcFloorData();
         SetFloorDataCorrespondingIFCGRID(this.ifc_floor_data_, this.ifc_code_of_ifcgrid_);
         SetRealPoints(real_points_path);
-        
+        CreateClassifiedPointCloudDataByModel(fbx_model_name);
+        DeleteClassifiedPointCloudDataNotInIfcFloorData(this.classified_point_cloud_data_, this.all_id_);
         //開始GroundCutting
 
 
@@ -102,29 +103,6 @@ public class Input : MonoBehaviour
             RemoveSpaceInListOfString(list_after_split);
             if (list_after_split[0].Length >= 1 && list_after_split[0][0] == '#') LinkToIfcNumberAndDecideToAcitvateSetFloorDataMethod(floor_data, list_after_split[0]);
         }
-    }
-    public void SetFloorDataCorrespondingIFCGRID(List<FloorData> all_floor_data, List<string> ifc_code_of_ifcgrid)
-    {
-        for (int i = 0; i < all_floor_data.Count; i++)
-        {
-            string corresponding_ifcgrid = null;//儲存該樓層對應之IFCGRID的ifc_code
-                                                //尋找該樓層對應之IFCGRID的ifc_code
-            for (int j = 0; j < ifc_code_of_ifcgrid.Count; j++)
-            {
-                if (all_floor_data[i].floor_height_level_ == FindFloorLevelInIFCGRID(ifc_code_of_ifcgrid[j]))
-                {
-                    corresponding_ifcgrid = ifc_code_of_ifcgrid[j];
-                    break;
-                }
-            }
-            //依照IFCGRID的ifc_code設定該樓層的grid_line_
-            if (corresponding_ifcgrid == null) all_floor_data[i].grid_line_ = null;//沒找到該樓層的柱線
-            else
-            {
-                SetOneFloorDataInIFCGRID(all_floor_data[i], corresponding_ifcgrid);
-            }
-        }
-
     }
     public void LinkToIfcNumberAndDecideToAcitvateSetFloorDataMethod(FloorData floor_data, string ifc_code)
     {
@@ -228,6 +206,113 @@ public class Input : MonoBehaviour
         }
         sr.Close();
     }
+    public int FindIndexOfClassifiedPointCloudDataByIdName(string id_name, List<ClassifiedPointCloudData> classified_point_cloud_data)
+    {
+        for (int i = 0; i < classified_point_cloud_data.Count; i++)
+        {
+            if (classified_point_cloud_data[i].id_name_ == id_name) return i;
+        }
+        return -1;
+    }
+    public int FindIndexOfFloorDataByFloorName(string floor_name, List<FloorData> floor_data)
+    {
+        for (int i = 0; i < floor_data.Count; i++)
+        {
+            if (floor_name == floor_data[i].floor_name_) return i;
+        }
+        return -1;
+    }
+    public void DeleteClassifiedPointCloudDataNotInIfcFloorData(List<ClassifiedPointCloudData> classified_point_cloud_data, List<string> id_name)
+    {
+        for (int i = 0; i < classified_point_cloud_data.Count; i++)
+        {
+            if (!id_name.Contains(classified_point_cloud_data[i].id_name_))
+            {
+                classified_point_cloud_data.RemoveAt(i);
+                i--;
+            }
+            
+        }
+    }
+    public void RemoveSpaceInListOfString(List<string>list_of_string)
+    {
+        for(int i = 0; i < list_of_string.Count; i++)
+        {
+            if (list_of_string[i] == "")
+            {
+                list_of_string.RemoveAt(i);
+                i--;
+            }
+        }
+        return;
+    }
+    public void CreateClassifiedPointCloudDataByModel(string fbx_model_name)
+    {
+        GameObject father_gameobject = GameObject.Find(fbx_model_name);
+        for(int i = 0; i < father_gameobject.transform.childCount; i++)
+        {
+            string child_name = father_gameobject.transform.GetChild(i).gameObject.name;
+            if (child_name.Length <= 2) continue;
+            else if (child_name.LastIndexOf('[') == -1 || child_name.LastIndexOf(']')==-1) continue;
+            string id = child_name.Substring(child_name.LastIndexOf('[') + 1, child_name.LastIndexOf(']') - child_name.LastIndexOf('[') - 1);
+            ClassifiedPointCloudData data = new ClassifiedPointCloudData();
+            data.id_name_ = id;
+            this.classified_point_cloud_data_.Add(data);
+        }
+    }
+    //Get系列
+    public List<FloorData> GetIfcFloorData()
+    {
+        return this.ifc_floor_data_;
+    }
+    public List<ClassifiedPointCloudData> GetClassifiedPointCloudData()
+    {
+        return this.classified_point_cloud_data_;
+    }
+    public List<float[]> GetRealPoints()
+    {
+        return this.real_points_;
+    }
+    //Input GroundCutting 系列
+    public void SetFloorDataCorrespondingIFCGRID(List<FloorData> all_floor_data, List<string> ifc_code_of_ifcgrid)
+    {
+        for (int i = 0; i < all_floor_data.Count; i++)
+        {
+            string corresponding_ifcgrid = null;//儲存該樓層對應之IFCGRID的ifc_code
+                                                //尋找該樓層對應之IFCGRID的ifc_code
+            for (int j = 0; j < ifc_code_of_ifcgrid.Count; j++)
+            {
+                if (all_floor_data[i].floor_height_level_ == FindFloorLevelInIFCGRID(ifc_code_of_ifcgrid[j]))
+                {
+                    corresponding_ifcgrid = ifc_code_of_ifcgrid[j];
+                    break;
+                }
+            }
+            //依照IFCGRID的ifc_code設定該樓層的grid_line_
+            if (corresponding_ifcgrid == null) all_floor_data[i].grid_line_ = null;//沒找到該樓層的柱線
+            else
+            {
+                SetOneFloorDataInIFCGRID(all_floor_data[i], corresponding_ifcgrid);
+            }
+        }
+
+    }
+    public float FindFloorLevelInIFCGRID(string ifc_code)
+    {
+        List<string> context1 = this.ifc_all_data_[Convert.ToInt32(this.ifc_hashtable_[ifc_code])];//依照ifc_code取得IFCGRID資料
+        List<string> context2 = this.ifc_all_data_[Convert.ToInt32(this.ifc_hashtable_[context1[7].Split(new char[] { '(', ')' }, StringSplitOptions.RemoveEmptyEntries)[0]])];//依照ifc_code取得IFCLOCALPLACEMENT資料
+        List<string> context3 = this.ifc_all_data_[Convert.ToInt32(this.ifc_hashtable_[context2[3].Split(new char[] { '(', ')' }, StringSplitOptions.RemoveEmptyEntries)[0]])];//依照ifc_code取得IFCAXIS2PLACEMENT3D資料
+        List<string> context4 = this.ifc_all_data_[Convert.ToInt32(this.ifc_hashtable_[context3[2].Split(new char[] { '(', ')' }, StringSplitOptions.RemoveEmptyEntries)[0]])];//依照ifc_code取得IFCCARTESIANPOINT資料
+        return float.Parse(context4[4].Split(new char[] { '(', ')' }, StringSplitOptions.RemoveEmptyEntries)[0]);
+    }
+    public void SetGrounCuttingAllGridLines(string floor_name)
+    {
+        this.ground_cutting_.SetAllGridLines(this.ifc_floor_data_[FindIndexOfFloorDataByFloorName(floor_name, this.ifc_floor_data_)].grid_line_);
+    }
+    public void SetGroundCuttingPointsInGrid()
+    {
+        this.ground_cutting_.SetGroundPointsInGrid();
+    }
     /**public void SetGroundCuttingAllGroundPoints
     public void SetGroundCuttingAllGroundPoints(string floor_name)
     {
@@ -265,90 +350,5 @@ public class Input : MonoBehaviour
 
     }
     */
-    public void SetGrounCuttingAllGridLines(string floor_name)
-    {
-        this.ground_cutting_.SetAllGridLines(this.ifc_floor_data_[FindIndexOfFloorDataByFloorName(floor_name, this.ifc_floor_data_)].grid_line_);
-    }
-    public void SetGroundCuttingPointsInGrid()
-    {
-        this.ground_cutting_.SetGroundPointsInGrid();
-    }
-    public int FindIndexOfClassifiedPointCloudDataByIdName(string id_name, List<ClassifiedPointCloudData> classified_point_cloud_data)
-    {
-        for (int i = 0; i < classified_point_cloud_data.Count; i++)
-        {
-            if (classified_point_cloud_data[i].id_name_ == id_name) return i;
-        }
-        return -1;
-    }
-    public float FindFloorLevelInIFCGRID(string ifc_code)
-    {
-        List<string> context1 = this.ifc_all_data_[Convert.ToInt32(this.ifc_hashtable_[ifc_code])];//依照ifc_code取得IFCGRID資料
-        List<string> context2 = this.ifc_all_data_[Convert.ToInt32(this.ifc_hashtable_[context1[7].Split(new char[] { '(', ')' }, StringSplitOptions.RemoveEmptyEntries)[0]])];//依照ifc_code取得IFCLOCALPLACEMENT資料
-        List<string> context3 = this.ifc_all_data_[Convert.ToInt32(this.ifc_hashtable_[context2[3].Split(new char[] { '(', ')' }, StringSplitOptions.RemoveEmptyEntries)[0]])];//依照ifc_code取得IFCAXIS2PLACEMENT3D資料
-        List<string> context4 = this.ifc_all_data_[Convert.ToInt32(this.ifc_hashtable_[context3[2].Split(new char[] { '(', ')' }, StringSplitOptions.RemoveEmptyEntries)[0]])];//依照ifc_code取得IFCCARTESIANPOINT資料
-        return float.Parse(context4[4].Split(new char[] { '(', ')' }, StringSplitOptions.RemoveEmptyEntries)[0]);
-    }
-    public int FindIndexOfFloorDataByFloorName(string floor_name, List<FloorData> floor_data)
-    {
-        for (int i = 0; i < floor_data.Count; i++)
-        {
-            if (floor_name == floor_data[i].floor_name_) return i;
-        }
-        return -1;
-    }
-    public void DeleteClassifiedPointCloudDataNotInIfcFloorData(List<ClassifiedPointCloudData> classified_point_cloud_data, List<string> id_name)
-    {
-        for (int i = 0; i < classified_point_cloud_data.Count; i++)
-        {
-            if (!id_name.Contains(classified_point_cloud_data[i].id_name_))
-            {
-                classified_point_cloud_data.RemoveAt(i);
-                i--;
-            }
-            
-        }
-    }
-    public void RemoveSpaceInListOfString(List<string>list_of_string)
-    {
-        for(int i = 0; i < list_of_string.Count; i++)
-        {
-            if (list_of_string[i] == "")
-            {
-                list_of_string.RemoveAt(i);
-                i--;
-            }
-        }
-        return;
-    }
-    public void IniciateClassifiedPointCloudData(string fbx_model_name)
-    {
-        GameObject father_gameobject = GameObject.Find(fbx_model_name);
-        for(int i = 0; i < father_gameobject.transform.childCount; i++)
-        {
-            string child_name = father_gameobject.transform.GetChild(i).gameObject.name;
-            if (child_name.Length <= 2) continue;
-            else if (child_name.LastIndexOf('[') == -1 || child_name.LastIndexOf(']')==-1) continue;
-            string id = child_name.Substring(child_name.LastIndexOf('[') + 1, child_name.LastIndexOf(']') - child_name.LastIndexOf('[') - 1);
-            ClassifiedPointCloudData data = new ClassifiedPointCloudData();
-            data.id_name_ = id;
-            this.classified_point_cloud_data_.Add(data);
-        }
-    }
-    //Get系列
-    public List<FloorData> GetIfcFloorData()
-    {
-        return this.ifc_floor_data_;
-    }
-    public List<ClassifiedPointCloudData> GetClassifiedPointCloudData()
-    {
-        return this.classified_point_cloud_data_;
-    }
-    public List<float[]> GetRealPoints()
-    {
-        return this.real_points_;
-    }
-    //Input GroundCutting 系列
-
 }
 
