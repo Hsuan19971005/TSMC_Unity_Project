@@ -11,14 +11,15 @@ public class FloorData : MonoBehaviour
     public WorkItemData WorkItemDataIfcWallStandardCase_ { get; set; }
     public WorkItemData WorkItemDataIfcSlab_ { get; set; }
     public WorkItemData WorkItemDataIfcBuildingElementProxy_ { get; set; }
+    public WorkItemData WorkItemDataGrid_ { get; set; }
     public List<Line> grid_line_ { get; set; }
     public FloorData()
     {
-        this.WorkItemDataIfcColumn_ = new WorkItemData();
-        this.WorkItemDataIfcWallStandardCase_ = new WorkItemData();
+        this.WorkItemDataIfcColumn_ = new WorkItemData(300);
+        this.WorkItemDataIfcWallStandardCase_ = new WorkItemData(623);
         this.WorkItemDataIfcSlab_ = new WorkItemData();
         this.WorkItemDataIfcBuildingElementProxy_ = new WorkItemData();
-        //this.grid_line_ = new List<float[][]>();
+        this.WorkItemDataGrid_ = new WorkItemData(623);
         this.grid_line_ = new List<Line>();
     }
 }

@@ -26,10 +26,9 @@ public class ConstructionProgress : MonoBehaviour
         {
             int index_of_name = Find_ID_NameIndexFromClassifiedPointCloudDataType(name, this.classified_point_cloud_data_);
             if (index_of_name == -1 ) continue;
-            if (this.classified_point_cloud_data_[index_of_name].points_.Count >= one_work_item_data.points_number_threshold) this.classified_point_cloud_data_[index_of_name].exist_ = true;
+            if (this.classified_point_cloud_data_[index_of_name].points_.Count >= one_work_item_data.points_number_threshold_) this.classified_point_cloud_data_[index_of_name].exist_ = true;
         }
     }
-    
     public int Find_ID_NameIndexFromClassifiedPointCloudDataType(string name, List<ClassifiedPointCloudData> classified_point_cloud_data)
     {
         for (int i = 0; i < classified_point_cloud_data.Count; i++) if (classified_point_cloud_data[i].id_name_ == name) return i;

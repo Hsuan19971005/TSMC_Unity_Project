@@ -20,6 +20,7 @@ public class Classifier : MonoBehaviour
     {
         for (int i = 0; i < real_points.Count; i++) 
         {
+            
             string final_object = "";
             Vector3 one_point_vector3 = new Vector3(real_points[i][0],real_points[i][1],real_points[i][2]);
             Collider[] hit_object = Physics.OverlapSphere(one_point_vector3, radius);
