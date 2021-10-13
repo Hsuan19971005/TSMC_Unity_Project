@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class ClassifiedPointCloudData : MonoBehaviour
+public class ClassifiedPointCloudData
 {
     public string id_name_ { get; set; }
     public bool exist_ { get; set; }
@@ -13,9 +13,11 @@ public class ClassifiedPointCloudData : MonoBehaviour
     public float z_max_ { get; set; }
     public float z_min_ { get; set; }
     public List<float[]> points_ { get; set; }
+    public List<float[]> four_corner_points { get; set; }
     public ClassifiedPointCloudData()
     {
         this.points_ = new List<float[]>();
+        this.four_corner_points = new List<float[]>();
         this.exist_ = false;
     }
     public void SetMaxMin(List<float[]> points)

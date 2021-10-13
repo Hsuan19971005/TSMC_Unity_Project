@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class FloorData : MonoBehaviour
+public class FloorData
 {
     public string floor_name_ { get; set; }
     public string floor_ifc_code_ { get; set; }
@@ -15,11 +15,11 @@ public class FloorData : MonoBehaviour
     public List<Line> grid_line_ { get; set; }
     public FloorData()
     {
-        this.WorkItemDataIfcColumn_ = new WorkItemData(300);
-        this.WorkItemDataIfcWallStandardCase_ = new WorkItemData(623);
+        this.WorkItemDataIfcColumn_ = new WorkItemData(150/9);
+        this.WorkItemDataIfcWallStandardCase_ = new WorkItemData(623/9);
         this.WorkItemDataIfcSlab_ = new WorkItemData();
         this.WorkItemDataIfcBuildingElementProxy_ = new WorkItemData();
-        this.WorkItemDataGrid_ = new WorkItemData(623);
+        this.WorkItemDataGrid_ = new WorkItemData(623/9);
         this.grid_line_ = new List<Line>();
     }
 }

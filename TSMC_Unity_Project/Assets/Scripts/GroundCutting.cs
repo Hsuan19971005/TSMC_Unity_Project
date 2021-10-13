@@ -1,13 +1,12 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using System.Collections;
 using System;
 
-public class GroundCutting : MonoBehaviour
+public class GroundCutting 
 {
-    public List<Line> vertical_grid_lines_ { get; set; }
-    public List<Line> horizontal_grid_lines_ { get; set; }
+    public List<Line> vertical_grid_lines_ { get; set; }//紀錄垂直網格線，高到低排列
+    public List<Line> horizontal_grid_lines_ { get; set; }//紀錄水平網格線，左到右排列
     public List<float[]> unclassified_ground_points_ { get; set; }//地面的所有尚未分割的點
     public List<float[]>[] grids_containing_points_ { get; set; }//儲存分割後的點
     public List<ClassifiedPointCloudData> grid_classified_point_cloud_data_ { get; set; }//儲存依照分割點雲網格創造出的ClassifiedPointCloudData
@@ -40,10 +39,10 @@ public class GroundCutting : MonoBehaviour
             if (x_span <= y_span) SetVerticalGridLines(unclassifid_lines[i], this.vertical_grid_lines_);
             else SetHorizontalGridLines(unclassifid_lines[i], this.horizontal_grid_lines_);
         }
-        this.vertical_grid_lines_.Insert(0, new Line(-999999999f, -999999999f, -999999999f, 999999999f));
-        this.vertical_grid_lines_.Add(new Line(999999999f, -999999999f, 999999999f, 999999999f));
-        this.horizontal_grid_lines_.Insert(0, new Line(-999999999f, 999999999f, 999999999f, 999999999f));
-        this.horizontal_grid_lines_.Add(new Line(-999999999f, -999999999f, 999999999f, -999999999f));
+        //this.vertical_grid_lines_.Insert(0, new Line(-999999999f, -999999999f, -999999999f, 999999999f));
+        //this.vertical_grid_lines_.Add(new Line(999999999f, -999999999f, 999999999f, 999999999f));
+        //this.horizontal_grid_lines_.Insert(0, new Line(-999999999f, 999999999f, 999999999f, 999999999f));
+        //this.horizontal_grid_lines_.Add(new Line(-999999999f, -999999999f, 999999999f, -999999999f));
     }
     public void CollectGroundPointsByOneIfcFloorData(FloorData one_floor_data)
     {
@@ -89,11 +88,16 @@ public class GroundCutting : MonoBehaviour
         {
             int index_x = FindIndexOfPointInGrid(this.unclassified_ground_points_[i], this.vertical_grid_lines_);
             int index_y = FindIndexOfPointInGrid(this.unclassified_ground_points_[i], this.horizontal_grid_lines_);
+            //點不在網格內
+            if (index_x == -1 || index_y == -1) continue;
+            //點在網格內
             this.grids_containing_points_[index_x + index_y * x_grid_num].Add(this.unclassified_ground_points_[i]);
         }
     }
     public int FindIndexOfPointInGrid(float[] point, List<Line> grid_lines)
     {
+        //點位於最小網格線左邊 或 點位於最大網格線右邊 回傳-1
+        if (Cross(grid_lines[0], point) > 0 || Cross(grid_lines[grid_lines.Count - 1], point) < 0) return -1;
         //二分搜尋法
         int low, high, mid;
         mid = 0;
@@ -115,6 +119,15 @@ public class GroundCutting : MonoBehaviour
             ClassifiedPointCloudData classified_point_cloud_data = new ClassifiedPointCloudData();
             classified_point_cloud_data.points_ = this.grids_containing_points_[i];
             classified_point_cloud_data.id_name_ = "Grid" + i;
+            float[] point1 = new float[3], point2 = new float[3], point3 = new float[3], point4 = new float[3];
+            if(IntersectionOfTwoLines(this.vertical_grid_lines_[i % (this.vertical_grid_lines_.Count-1)], this.horizontal_grid_lines_[i / (this.vertical_grid_lines_.Count-1) ], point1)==false)Debug.Log("point1平行");
+            if (IntersectionOfTwoLines(this.vertical_grid_lines_[i % (this.vertical_grid_lines_.Count-1)+1], this.horizontal_grid_lines_[i / (this.vertical_grid_lines_.Count-1)], point2) == false) Debug.Log("point2平行");
+            if (IntersectionOfTwoLines(this.vertical_grid_lines_[i % (this.vertical_grid_lines_.Count-1)+1], this.horizontal_grid_lines_[i / (this.vertical_grid_lines_.Count-1)+1], point3) == false) Debug.Log("point3平行");
+            if (IntersectionOfTwoLines(this.vertical_grid_lines_[i % (this.vertical_grid_lines_.Count-1)], this.horizontal_grid_lines_[i / (this.vertical_grid_lines_.Count-1 )+1], point4) == false) Debug.Log("point4平行");
+            classified_point_cloud_data.four_corner_points.Add(point1);
+            classified_point_cloud_data.four_corner_points.Add(point2);
+            classified_point_cloud_data.four_corner_points.Add(point3);
+            classified_point_cloud_data.four_corner_points.Add(point4);
             this.grid_classified_point_cloud_data_.Add(classified_point_cloud_data);
         }
     }
@@ -125,11 +138,6 @@ public class GroundCutting : MonoBehaviour
             this.work_item_data_grid_.id_name_.Add("Grid" + i);
         }
     }
-    public void PassGroundCuttingMemberDataToDataBase(List<ClassifiedPointCloudData>classified_point_cloud_data,WorkItemData work_item_data_grid)
-    {
-        classified_point_cloud_data.AddRange(this.grid_classified_point_cloud_data_);
-        work_item_data_grid = this.work_item_data_grid_;
-    }
     public void SetHorizontalGridLines(Line line, List<Line> line_group)
     {
         line.SetInXOrder();
@@ -139,6 +147,7 @@ public class GroundCutting : MonoBehaviour
             return;
         }
         int insert_position = 0;
+        //從高到低排列
         while (insert_position < line_group.Count)
         {
             if (line.mid_point_y_ <= line_group[insert_position].mid_point_y_) insert_position++;
@@ -159,6 +168,7 @@ public class GroundCutting : MonoBehaviour
             return;
         }
         int insert_position = 0;
+        //從左到右排列
         while (insert_position < line_group.Count)
         {
             if (line.mid_point_x_ > line_group[insert_position].mid_point_x_) insert_position++;
@@ -174,5 +184,30 @@ public class GroundCutting : MonoBehaviour
     {
         return (line.point2_x_ - line.point1_x_) * (point3[1] - line.point1_y_) - (line.point2_y_ - line.point1_y_) * (point3[0] - line.point1_x_);
     }
+    public float Cross(float point1_x,float point1_y,float point2_x,float point2_y)
+    {
+        return point1_x * point2_y - point2_x * point1_y;
+    }
+    public bool IntersectionOfTwoLines(Line line1,Line line2, float[] return_one_point)
+    {
+        float[] vector_1 = new float[2] { line1.point2_x_ - line1.point1_x_, line1.point2_y_ - line1.point1_y_ };
+        float[] vector_2 = new float[2] { line2.point2_x_ - line2.point1_x_, line2.point2_y_ - line2.point1_y_ };
+        float[] vector_3 = new float[2] { line2.point1_x_ - line1.point1_x_, line2.point1_y_ - line1.point1_y_ };
+        if (Cross(vector_1[0], vector_1[1], vector_2[0], vector_2[1]) == 0) return false;//兩線平行，交點不存在。兩線重疊，交點無限多
+        return_one_point[0] = line1.point1_x_ + vector_1[0] * Cross(vector_3[0], vector_3[1], vector_2[0], vector_2[1]) / Cross(vector_1[0],vector_1[1],vector_2[0],vector_2[1]);
+        return_one_point[1] = line1.point1_y_ + vector_1[1] * Cross(vector_3[0], vector_3[1], vector_2[0], vector_2[1]) / Cross(vector_1[0], vector_1[1], vector_2[0], vector_2[1]);
+        return true;
+    }
 
+
+
+    //Get 系列
+    public List<ClassifiedPointCloudData> GetGridClassifiedPointCloudData()
+    {
+        return this.grid_classified_point_cloud_data_;
+    }
+    public WorkItemData GetWorkItemDataGrid()
+    {
+        return this.work_item_data_grid_;
+    }
 }

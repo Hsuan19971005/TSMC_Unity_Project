@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Classifier : MonoBehaviour
+public class Classifier 
 {
     
     public List<ClassifiedPointCloudData> classified_point_cloud_data_ { get; set; }
@@ -110,7 +110,6 @@ public class Classifier : MonoBehaviour
             mesh.SetIndices(indecies, MeshTopology.Points, 0);
         }
     }
-
     //Set系列
     public void SetRealPoints(List<float[]> real_points)
     {

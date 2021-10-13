@@ -12,7 +12,7 @@ using UnityEngine.Networking;
  * 3. 建置ifc_floor_data_，並傳入至DataBase
  * 4. 建置real_points_，並傳入至DataBase
  */
-public class InitiateProject : MonoBehaviour
+public class InitiateProject 
 {
     public List<float[]> real_points_ { get; set; }//儲存真實點雲 x y z
     public List<ClassifiedPointCloudData> classified_point_cloud_data_ { get; set; }
@@ -182,7 +182,7 @@ public class InitiateProject : MonoBehaviour
             final_line.SetMidPoint();
             floor_data.grid_line_.Add(final_line);
         }
-        else if (one_line_of_ifc_all_data[1] == "IFCOWNERHISTORY" || one_line_of_ifc_all_data[1] == "IFCPRODUCTDEFINITIONSHAPE" || one_line_of_ifc_all_data[1] == "IFCLOCALPLACEMENT");
+        else if (one_line_of_ifc_all_data[1] == "IFCOWNERHISTORY" || one_line_of_ifc_all_data[1] == "IFCPRODUCTDEFINITIONSHAPE" || one_line_of_ifc_all_data[1] == "IFCLOCALPLACEMENT")return;
         else
         {
             for (int i = 2; i < one_line_of_ifc_all_data.Count; i++)

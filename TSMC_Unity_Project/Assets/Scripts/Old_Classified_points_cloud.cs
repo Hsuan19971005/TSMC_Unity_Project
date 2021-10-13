@@ -107,7 +107,7 @@ public class Old_Classified_points_cloud : MonoBehaviour
         }
         for (int i = 0; i < distance.Count; i++)//find 2nd Min
         {
-            if (i == MinNum) ;
+            if (i == MinNum) continue;
             else if (distance[i] < Min2) Min2 = distance[i];
         }
         if (Min == Min2) return " ";//最小兩個一樣，回傳空

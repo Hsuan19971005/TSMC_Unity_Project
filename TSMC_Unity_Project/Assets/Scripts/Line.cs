@@ -2,15 +2,18 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Line : MonoBehaviour
+public class Line 
 {
     //line test
     public float point1_x_ { get; set; }
     public float point1_y_ { get; set; }
+    public float point1_z_ { get; set; }
     public float point2_x_ { get; set; }
     public float point2_y_ { get; set; }
+    public float point2_z_ { get; set; }
     public float mid_point_x_ { get; set; }
     public float mid_point_y_ { get; set; }
+    public float mid_point_z_ { get; set; }
     public Line()
     {
 
@@ -27,10 +30,11 @@ public class Line : MonoBehaviour
     {
         this.mid_point_x_ = (this.point1_x_ + this.point2_x_) / 2;
         this.mid_point_y_ = (this.point1_y_ + this.point2_y_) / 2;
+        this.mid_point_z_ = (this.point1_z_ + this.point2_z_) / 2;
     }
     public void ShowLine()
     {
-        Debug.Log("(" + this.point1_x_ + ", " + this.point1_y_ + ") (" + this.point2_x_ + ", " + this.point2_y_ + ")");
+        Debug.Log("(" + this.point1_x_ + ", " + this.point1_y_ + ", " + this.point1_z_  + ") (" + this.point2_x_ + ", " + this.point2_y_ + ", "+this.point2_z_+")");
     }
     public void SetInYOrder()
     {
@@ -47,7 +51,7 @@ public class Line : MonoBehaviour
     }
     public void SetInXOrder()
     {
-        //point1的y要比較小
+        //point1的x要比較小
         if (this.point1_x_ > this.point2_x_)
         {
             float x = this.point1_x_;

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.IO;
 
-public class ConstructionProgress : MonoBehaviour
+public class ConstructionProgress 
 {
     private List<ClassifiedPointCloudData> classified_point_cloud_data_ { get; set; }
     private List<FloorData> ifc_floor_data_ { get; set; }
@@ -42,12 +42,12 @@ public class ConstructionProgress : MonoBehaviour
         }
         return -1;
     }
-    public int CountOneFloorColumnExistNumber(FloorData one_floor_data)
+    public int CountOneFloorColumnExistNumber(FloorData one_floor_data,List<ClassifiedPointCloudData>classified_point_cloud_data)
     {
         int count = 0;
         foreach (var name in one_floor_data.WorkItemDataIfcColumn_.id_name_)
         {
-            foreach (var data in this.classified_point_cloud_data_)
+            foreach (var data in classified_point_cloud_data)
             {
                 if (data.id_name_ == name && data.exist_ == true)
                 {
@@ -58,28 +58,12 @@ public class ConstructionProgress : MonoBehaviour
         }
         return count;
     }
-    public int CountOneFloorColumnNumber(FloorData one_floor_data)
-    {
-        int count = 0;
-        foreach (var name in one_floor_data.WorkItemDataIfcColumn_.id_name_)
-        {
-            foreach (var data in this.classified_point_cloud_data_)
-            {
-                if (data.id_name_ == name)
-                {
-                    count++;
-                    break;
-                }
-            }
-        }
-        return count;
-    }
-    public int CountOneFloorWallExistNumber(FloorData one_floor_data)
+    public int CountOneFloorWallExistNumber(FloorData one_floor_data, List<ClassifiedPointCloudData> classified_point_cloud_data)
     {
         int count = 0;
         foreach (var name in one_floor_data.WorkItemDataIfcWallStandardCase_.id_name_)
         {
-            foreach (var data in this.classified_point_cloud_data_)
+            foreach (var data in classified_point_cloud_data)
             {
                 if (data.id_name_ == name && data.exist_ == true)
                 {
@@ -90,14 +74,14 @@ public class ConstructionProgress : MonoBehaviour
         }
         return count;
     }
-    public int CountOneFloorWallNumber(FloorData one_floor_data)
+    public int CountOneFloorGridExistNumber(FloorData one_floor_data, List<ClassifiedPointCloudData> classified_point_cloud_data)
     {
         int count = 0;
-        foreach (var name in one_floor_data.WorkItemDataIfcWallStandardCase_.id_name_)
+        foreach (var name in one_floor_data.WorkItemDataGrid_.id_name_)
         {
-            foreach (var data in this.classified_point_cloud_data_)
+            foreach (var data in classified_point_cloud_data)
             {
-                if (data.id_name_ == name)
+                if (data.id_name_ == name && data.exist_ == true)
                 {
                     count++;
                     break;
@@ -106,7 +90,6 @@ public class ConstructionProgress : MonoBehaviour
         }
         return count;
     }
-
     //Write 系列
 
     public ClassifiedPointCloudData GetClassifiedPointCloudDataByName(string name, List<ClassifiedPointCloudData> classified_point_cloud_data)
