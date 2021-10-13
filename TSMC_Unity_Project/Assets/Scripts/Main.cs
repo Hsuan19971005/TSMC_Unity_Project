@@ -7,13 +7,21 @@ using UnityEngine.SceneManagement;
 
 public class Main : MonoBehaviour
 {
+    GameObject point_cloud_inputfield_;
+    GameObject ifc_inputfield_;
     public string fbx_name;
     public float radius = 0.30f;
     public string point_cloud_file_name;
     // Start is called before the first frame update
+    private void Awake()
+    {
+        point_cloud_inputfield_ = GameObject.Find("Point_Cloud_InputField");
+        ifc_inputfield_=GameObject.Find("IFC_InputField");
+
+    }
     void Start()
     {
-        Debug.Log("執行前時間:" + System.DateTime.Now);//紀錄時間
+        //Debug.Log("執行前時間:" + System.DateTime.Now);//紀錄時間
         //string ifc_file_path = "D:\\UnityAllFile/TSMC_Unity_Project/AP06-FAB_Grid.ifc";
         //string real_points_path = "D:\\UnityAllFile/TSMC_Unity_Project/0813_TSMC竹南_真實點雲_1cm.txt";
         //string real_points_path = "D:\\UnityAllFile/TSMC_Unity_Project/0716TSMC竹南廠房_虛擬點雲_1cm稀疏.txt";
@@ -46,7 +54,7 @@ public class Main : MonoBehaviour
         progress.DoOneWorkItemDataProgress(DataBase.ifc_floor_data_[index_of_user_input_floor_name].WorkItemDataIfcWallStandardCase_);
         progress.DoOneWorkItemDataProgress(DataBase.ifc_floor_data_[index_of_user_input_floor_name].WorkItemDataGrid_);
         /*************換場景**************/
-        Debug.Log("執行完時間:" + System.DateTime.Now);//紀錄時間
+        //Debug.Log("執行完時間:" + System.DateTime.Now);//紀錄時間
 
 
 
