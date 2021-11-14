@@ -15,7 +15,7 @@ public class FloorData
     public List<Line> grid_line_ { get; set; }
     public FloorData()
     {
-        this.WorkItemDataIfcColumn_ = new WorkItemData(150/9);
+        this.WorkItemDataIfcColumn_ = new WorkItemData(300/9);
         this.WorkItemDataIfcWallStandardCase_ = new WorkItemData(623/9);
         this.WorkItemDataIfcSlab_ = new WorkItemData();
         this.WorkItemDataIfcBuildingElementProxy_ = new WorkItemData();

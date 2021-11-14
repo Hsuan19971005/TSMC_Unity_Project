@@ -2,8 +2,22 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System;
-
-public class GroundCutting 
+/**點雲根據BIM模型分類功能：
+ * 1. 先傳入真實點雲、傳入ClassifiedPointCloudData類型資料、傳入分析半徑
+ * 2. 第1點完成後才能使用ClassifyRealPointsIntoClassifiedPointCloudData()
+ */
+/**Example:
+ * SetAllGridLines(List<Line> unclassifid_lines);
+ * SetGridsContainingPoints();
+ * SetWorkItemDataGrid();
+ * CollectGroundPointsByOneIfcFloorData(FloorData one_floor_data);
+ * ClassifyGroundPointsIntoGridsContainingPoints();
+ * SetGridClassifiedPointCloudData();
+ * GetGridClassifiedPointCloudData()
+ * GetWorkItemDataGrid()
+ * 
+ */
+public class GroundCutting :MonoBehaviour
 {
     public List<Line> vertical_grid_lines_ { get; set; }//紀錄垂直網格線，高到低排列
     public List<Line> horizontal_grid_lines_ { get; set; }//紀錄水平網格線，左到右排列
@@ -12,24 +26,14 @@ public class GroundCutting
     public List<ClassifiedPointCloudData> grid_classified_point_cloud_data_ { get; set; }//儲存依照分割點雲網格創造出的ClassifiedPointCloudData
     public WorkItemData work_item_data_grid_ { get; set; }
     public List<string> all_id_ { get; set; }
-    public GroundCutting()
+    private void Start()
     {
         this.vertical_grid_lines_ = new List<Line>();
         this.horizontal_grid_lines_ = new List<Line>();
         this.unclassified_ground_points_ = new List<float[]>();
         this.grid_classified_point_cloud_data_ = new List<ClassifiedPointCloudData>();
-        this.work_item_data_grid_ = new WorkItemData(623);
+        this.work_item_data_grid_ = new WorkItemData(623/9);
     }
-    public GroundCutting(List<float[]> ground_points)
-    {
-        this.vertical_grid_lines_ = new List<Line>();
-        this.horizontal_grid_lines_ = new List<Line>();
-        this.unclassified_ground_points_ = new List<float[]>();
-        this.grid_classified_point_cloud_data_ = new List<ClassifiedPointCloudData>();
-        this.work_item_data_grid_ = new WorkItemData(623);
-        SetGroundPoints(ground_points);
-    }
-
     public void SetAllGridLines(List<Line> unclassifid_lines)
     {
         for (int i = 0; i < unclassifid_lines.Count; i++)
@@ -43,6 +47,14 @@ public class GroundCutting
         //this.vertical_grid_lines_.Add(new Line(999999999f, -999999999f, 999999999f, 999999999f));
         //this.horizontal_grid_lines_.Insert(0, new Line(-999999999f, 999999999f, 999999999f, 999999999f));
         //this.horizontal_grid_lines_.Add(new Line(-999999999f, -999999999f, 999999999f, -999999999f));
+    }
+    public void SetGridsContainingPoints()
+    {
+        int x_grid_num = this.vertical_grid_lines_.Count - 1;
+        int y_grid_num = this.horizontal_grid_lines_.Count - 1;
+        //設定gird_的大小及創建空間
+        this.grids_containing_points_ = new List<float[]>[x_grid_num * y_grid_num];
+        for (int i = 0; i < x_grid_num * y_grid_num; i++) this.grids_containing_points_[i] = new List<float[]>();
     }
     public void CollectGroundPointsByOneIfcFloorData(FloorData one_floor_data)
     {
@@ -75,24 +87,6 @@ public class GroundCutting
     public void SetGroundPoints(List<float[]> ground_points)
     {
         this.unclassified_ground_points_ = ground_points;
-    }
-    public void ClassifyGroundPointsIntoGridsContainingPoints()
-    {
-        int x_grid_num = this.vertical_grid_lines_.Count - 1;
-        int y_grid_num = this.horizontal_grid_lines_.Count - 1;
-        //設定gird_的大小及創建空間
-        this.grids_containing_points_ = new List<float[]>[x_grid_num * y_grid_num];
-        for (int i = 0; i < x_grid_num * y_grid_num; i++) this.grids_containing_points_[i] = new List<float[]>();
-        //將每一個點放入指定的Grid
-        for (int i = 0; i < this.unclassified_ground_points_.Count; i++)
-        {
-            int index_x = FindIndexOfPointInGrid(this.unclassified_ground_points_[i], this.vertical_grid_lines_);
-            int index_y = FindIndexOfPointInGrid(this.unclassified_ground_points_[i], this.horizontal_grid_lines_);
-            //點不在網格內
-            if (index_x == -1 || index_y == -1) continue;
-            //點在網格內
-            this.grids_containing_points_[index_x + index_y * x_grid_num].Add(this.unclassified_ground_points_[i]);
-        }
     }
     public int FindIndexOfPointInGrid(float[] point, List<Line> grid_lines)
     {
@@ -198,9 +192,6 @@ public class GroundCutting
         return_one_point[1] = line1.point1_y_ + vector_1[1] * Cross(vector_3[0], vector_3[1], vector_2[0], vector_2[1]) / Cross(vector_1[0], vector_1[1], vector_2[0], vector_2[1]);
         return true;
     }
-
-
-
     //Get 系列
     public List<ClassifiedPointCloudData> GetGridClassifiedPointCloudData()
     {
@@ -209,5 +200,20 @@ public class GroundCutting
     public WorkItemData GetWorkItemDataGrid()
     {
         return this.work_item_data_grid_;
+    }
+    //IEnumerator
+    public IEnumerator ClassifyGroundPointsIntoGridsContainingPoints()
+    {
+        //將每一個點放入指定的Grid
+        for (int i = 0; i < this.unclassified_ground_points_.Count; i++)
+        {
+            if (i % 1000 == 0) yield return null;
+            int index_x = FindIndexOfPointInGrid(this.unclassified_ground_points_[i], this.vertical_grid_lines_);
+            int index_y = FindIndexOfPointInGrid(this.unclassified_ground_points_[i], this.horizontal_grid_lines_);
+            //點不在網格內
+            if (index_x == -1 || index_y == -1) continue;
+            //點在網格內
+            this.grids_containing_points_[index_x + index_y * (this.vertical_grid_lines_.Count - 1)].Add(this.unclassified_ground_points_[i]);
+        }
     }
 }

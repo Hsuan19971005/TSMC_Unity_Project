@@ -5,6 +5,7 @@ using System.IO;
 using System;
 using System.Text;
 using UnityEngine.Networking;
+using UnityEngine.UI;
 
 /**InitiateProject 功能說明
  * 1. 讀取IFC檔
@@ -38,9 +39,17 @@ public class InitiateProject
         SetRealPoints(real_points_path);
         CreateClassifiedPointCloudDataByModel(fbx_model_name);
         DeleteClassifiedPointCloudDataNotInIfcFloorData(this.classified_point_cloud_data_, this.all_id_);
-        //開始GroundCutting
-
-
+    }
+    public InitiateProject()
+    {
+        this.real_points_ = new List<float[]>();
+        this.classified_point_cloud_data_ = new List<ClassifiedPointCloudData>();
+        this.ifc_code_of_ifcrelcontainedinspatialstructure_ = new List<string>();
+        this.ifc_code_of_ifcgrid_ = new List<string>();
+        this.ifc_all_data_ = new List<List<string>>();
+        this.ifc_hashtable_ = new Hashtable();
+        this.ifc_floor_data_ = new List<FloorData>();
+        this.all_id_ = new List<string>();
     }
     public void OpenAndProcessIfcFile(string file_path)
     {
@@ -164,35 +173,6 @@ public class InitiateProject
         floor_data.WorkItemDataIfcBuildingElementProxy_.id_name_.Add(list_for_id[0]);//寫入Proxy ID
         this.all_id_.Add(list_for_id[0]);
     }
-    public void SetOneFloorDataInIFCGRID(FloorData floor_data, string ifc_code)
-    {
-        List<string> one_line_of_ifc_all_data = ifc_all_data_[Convert.ToInt32(this.ifc_hashtable_[ifc_code])];//依照ifc_code取得該行資料
-        if (one_line_of_ifc_all_data[1] == "IFCPOLYLINE")
-        {
-            Line final_line = new Line();
-            //IFCCARTESIANPOINT 1
-            List<string> cartesian1 = this.ifc_all_data_[Convert.ToInt32(this.ifc_hashtable_[one_line_of_ifc_all_data[2].Split(new char[] { '(', ')' }, StringSplitOptions.RemoveEmptyEntries)[0]])];//依照ifc_code取得第一個IFCCARTESIANPOINT資料
-            final_line.point1_x_ = float.Parse(cartesian1[2].Split(new char[] { '(', ')' }, StringSplitOptions.RemoveEmptyEntries)[0]) / 1000f;
-            final_line.point1_y_ = float.Parse(cartesian1[3].Split(new char[] { '(', ')' }, StringSplitOptions.RemoveEmptyEntries)[0]) / 1000f;
-            //IFCCARTESIANPOINT 2
-            List<string> cartesian2 = this.ifc_all_data_[Convert.ToInt32(this.ifc_hashtable_[one_line_of_ifc_all_data[3].Split(new char[] { '(', ')' }, StringSplitOptions.RemoveEmptyEntries)[0]])];//依照ifc_code取得第一個IFCCARTESIANPOINT資料
-            final_line.point2_x_ = float.Parse(cartesian2[2].Split(new char[] { '(', ')' }, StringSplitOptions.RemoveEmptyEntries)[0]) / 1000f;
-            final_line.point2_y_ = float.Parse(cartesian2[3].Split(new char[] { '(', ')' }, StringSplitOptions.RemoveEmptyEntries)[0]) / 1000f;
-
-            final_line.SetMidPoint();
-            floor_data.grid_line_.Add(final_line);
-        }
-        else if (one_line_of_ifc_all_data[1] == "IFCOWNERHISTORY" || one_line_of_ifc_all_data[1] == "IFCPRODUCTDEFINITIONSHAPE" || one_line_of_ifc_all_data[1] == "IFCLOCALPLACEMENT")return;
-        else
-        {
-            for (int i = 2; i < one_line_of_ifc_all_data.Count; i++)
-            {
-                string[] array = one_line_of_ifc_all_data[i].Split(new char[] { '(', ')' }, StringSplitOptions.RemoveEmptyEntries);//去除可能存在的"(",")"
-                if (array[0].Length >= 1 && array[0][0] == '#') SetOneFloorDataInIFCGRID(floor_data, array[0]);
-            }
-        }
-        return;
-    }
     public void SetRealPoints(string file_path)
     {
         if (!File.Exists(file_path)) Console.WriteLine("找不到真實點雲位置：" + file_path);
@@ -252,8 +232,14 @@ public class InitiateProject
     }
     public void CreateClassifiedPointCloudDataByModel(string fbx_model_name)
     {
+        
         GameObject father_gameobject = GameObject.Find(fbx_model_name);
-        for(int i = 0; i < father_gameobject.transform.childCount; i++)
+        if (father_gameobject == null)
+        {
+            GameObject.Find("State_Text").GetComponent<Text>().text += "Can't find analysis model in this floor! Please try other floors.";
+            return;
+        }
+        for (int i = 0; i < father_gameobject.transform.childCount; i++)
         {
             string child_name = father_gameobject.transform.GetChild(i).gameObject.name;
             if (child_name.Length <= 2) continue;
@@ -283,7 +269,7 @@ public class InitiateProject
         for (int i = 0; i < all_floor_data.Count; i++)
         {
             string corresponding_ifcgrid = null;//儲存該樓層對應之IFCGRID的ifc_code
-                                                //尋找該樓層對應之IFCGRID的ifc_code
+            //尋找該樓層對應之IFCGRID的ifc_code
             for (int j = 0; j < ifc_code_of_ifcgrid.Count; j++)
             {
                 if (all_floor_data[i].floor_height_level_ == FindFloorLevelInIFCGRID(ifc_code_of_ifcgrid[j]))
@@ -300,6 +286,46 @@ public class InitiateProject
             }
         }
 
+    }
+    public void SetOneFloorDataInIFCGRID(FloorData floor_data, string ifc_code)
+    {
+        //IFCGRID下從IFCGRIDAXIS進入=>取得IFCPOLYLINE中的IFCCARTESIANPOINT
+        List<string> one_line_of_ifc_all_data = this.ifc_all_data_[Convert.ToInt32(this.ifc_hashtable_[ifc_code])];//依照ifc_code取得該行資料
+        //開始查找IFCGRID的每一項
+        for(int i = 2; i < one_line_of_ifc_all_data.Count; i++)
+        {
+            one_line_of_ifc_all_data[i] = one_line_of_ifc_all_data[i].Split(new char[] { '(', ')' }, StringSplitOptions.RemoveEmptyEntries)[0];//去除可能存在的"(",")"
+            //若該項開頭為#，查找該IFC code指向之資料
+            if (one_line_of_ifc_all_data[i].Length >= 1 && one_line_of_ifc_all_data[i][0] == '#')
+            {
+                if (this.ifc_all_data_[Convert.ToInt32(this.ifc_hashtable_[one_line_of_ifc_all_data[i]])][1]== "IFCGRIDAXIS")
+                {
+                    string ifc_code_of_IFCPOLYLINE = this.ifc_all_data_[Convert.ToInt32(this.ifc_hashtable_[one_line_of_ifc_all_data[i]])][3];
+                    string line_name= this.ifc_all_data_[Convert.ToInt32(this.ifc_hashtable_[one_line_of_ifc_all_data[i]])][2];
+                    line_name = line_name.Split(new char[] { '\'' }, StringSplitOptions.RemoveEmptyEntries)[0];//去除柱線名稱的 '
+                    SetOneFloorDataLineInformation(floor_data, ifc_code_of_IFCPOLYLINE, line_name);
+                }
+            }
+        }
+        return;
+    }
+    public void SetOneFloorDataLineInformation(FloorData floor_data,string ifc_code,string line_name)
+    {
+        List<string> one_line_of_ifc_all_data = ifc_all_data_[Convert.ToInt32(this.ifc_hashtable_[ifc_code])];//依照ifc_code取得該行資料
+        Line final_line = new Line();
+        //Set name of the line
+        final_line.name_ = line_name;
+        //IFCCARTESIANPOINT 1
+        List<string> cartesian1 = this.ifc_all_data_[Convert.ToInt32(this.ifc_hashtable_[one_line_of_ifc_all_data[2].Split(new char[] { '(', ')' }, StringSplitOptions.RemoveEmptyEntries)[0]])];//依照ifc_code取得第一個IFCCARTESIANPOINT資料
+        final_line.point1_x_ = float.Parse(cartesian1[2].Split(new char[] { '(', ')' }, StringSplitOptions.RemoveEmptyEntries)[0]) / 1000f;
+        final_line.point1_y_ = float.Parse(cartesian1[3].Split(new char[] { '(', ')' }, StringSplitOptions.RemoveEmptyEntries)[0]) / 1000f;
+        //IFCCARTESIANPOINT 2
+        List<string> cartesian2 = this.ifc_all_data_[Convert.ToInt32(this.ifc_hashtable_[one_line_of_ifc_all_data[3].Split(new char[] { '(', ')' }, StringSplitOptions.RemoveEmptyEntries)[0]])];//依照ifc_code取得第一個IFCCARTESIANPOINT資料
+        final_line.point2_x_ = float.Parse(cartesian2[2].Split(new char[] { '(', ')' }, StringSplitOptions.RemoveEmptyEntries)[0]) / 1000f;
+        final_line.point2_y_ = float.Parse(cartesian2[3].Split(new char[] { '(', ')' }, StringSplitOptions.RemoveEmptyEntries)[0]) / 1000f;
+
+        final_line.SetMidPoint();
+        floor_data.grid_line_.Add(final_line);
     }
     public float FindFloorLevelInIFCGRID(string ifc_code)
     {

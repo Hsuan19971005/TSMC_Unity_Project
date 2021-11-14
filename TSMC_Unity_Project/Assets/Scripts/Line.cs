@@ -14,6 +14,7 @@ public class Line
     public float mid_point_x_ { get; set; }
     public float mid_point_y_ { get; set; }
     public float mid_point_z_ { get; set; }
+    public string name_ { get; set; }
     public Line()
     {
 

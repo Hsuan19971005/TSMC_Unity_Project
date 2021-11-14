@@ -2,11 +2,13 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using System.IO;
 using UnityEngine.UI;
+
 
 public class ModelRenderer : MonoBehaviour
 {
-    #region Toggle
+    #region TOGGLE
     Toggle walls_columns_toggle_;
     Toggle walls_columns_progress_toggle_;
     Toggle slabs_toggle_;
@@ -14,47 +16,52 @@ public class ModelRenderer : MonoBehaviour
     Toggle grid_line_toggle_;
     Toggle others_toggle_;
     #endregion
-    #region Model Information
+    #region MODEL INFORMATION
     private Hashtable model_hashtable_ { get; set; }//Key=元件ID, Value=模型物件名稱
     public GameObject model_ { get; set; }//FBX Model
-    private List<GameObject> walls_columns_gameobjects_ { get; set; }
-    private List<GameObject> walls_columns_progress_gameobjects_ { get; set; }
-    private List<GameObject> ground_gameobjects_ { get; set; }
-    private List<GameObject> ground_progress_gameobjects_ { get; set; }
-    private List<GameObject> unanalyzed_gameobjects_ { get; set; }
-    private List<GameObject> grid_line_gameobjects_ { get; set; }
-    private float max_y_of_ground_element { get; set; }
+    private List<GameObject> walls_columns_gameobjects_ { get; set; }//All wall & column gameobjects in model
+    private List<GameObject> walls_columns_current_progress_gameobjects_ { get; set; }//wall & column gameobjects which have been done in construction site
+    private List<GameObject> walls_columns_recorded_progress_gameobjects_ { get; set; }//wall & column gameobjects which are recorded in file but not contained in walls_columns_current_progress_gameobjects_
+    private List<GameObject> ground_gameobjects_ { get; set; }//All proxy & slab gameobjects in model
+    private List<GameObject> ground_progress_gameobjects_ { get; set; }//gameobjects which are all quads in different color to present ground progress
+    private List<GameObject> unanalyzed_gameobjects_ { get; set; }//gameobjects not in analysis
+    private List<GameObject> grid_line_gameobjects_ { get; set; }//gameobjects which are grid lines
+    private float max_y_of_ground_element { get; set; }//max y amoung gound relating components
     #endregion
 
     private void Awake()
     {
         this.model_hashtable_ = new Hashtable();
         this.walls_columns_gameobjects_ = new List<GameObject>();
-        this.walls_columns_progress_gameobjects_ = new List<GameObject>();
+        this.walls_columns_current_progress_gameobjects_ = new List<GameObject>();
+        this.walls_columns_recorded_progress_gameobjects_ = new List<GameObject>();
         this.ground_gameobjects_ = new List<GameObject>();
         this.ground_progress_gameobjects_ = new List<GameObject>();
         this.unanalyzed_gameobjects_ = new List<GameObject>();
         this.grid_line_gameobjects_ = new List<GameObject>();
-
-        walls_columns_toggle_ = GameObject.Find("Walls_Columns_Toggle").GetComponent<Toggle>();
-        walls_columns_progress_toggle_ = GameObject.Find("Walls_Columns_Progress_Toggle").GetComponent<Toggle>();
-        slabs_toggle_ = GameObject.Find("Slabs_Toggle").GetComponent<Toggle>();
-        slabs_progress_toggle_ = GameObject.Find("Slabs_Progress_Toggle").GetComponent<Toggle>();
-        grid_line_toggle_ = GameObject.Find("Grid_Line_Toggle").GetComponent<Toggle>();
-        others_toggle_ = GameObject.Find("Others_Toggle").GetComponent<Toggle>();
+        
     }
     private void Start()
     {
-        
-        SetModel(DataBase.model_name_);
+        SetModel(DataBase.chosen_floor_name_);
         SetModelHashtable();
         DivideModelChildrenIntoCorrespondingGameObjects();
-        SetWallsColumnsProgressGameObjects();
+        SetWallsColumnsCurrentProgressGameObjects();
         this.max_y_of_ground_element = FindMaxYOfFloorElementFromModel();
         SetGroundProgressGameObjects();
         SetGridLineGameObjects();
         ChangeUnanalyzedVisibility();
         ChangeWallsColumnsProgressVisibility();
+
+        //Recorded file's chosen floor name is the same as the analysis chosen floor name.
+        if (DataBase.recorded_file_chosen_floor_name_ == DataBase.chosen_floor_name_)
+        {
+            //Change ground progress gameobjects' color
+            ChangeRecordedGroundProgressGameObjectsColor();
+            //Find walls & columns' gameobjects. And they are contained in recorded file but not contained in current progress gameobjects.
+            SetWallsColumnsRecordedProgress();
+            ChangeWallsColumnsProgressVisibility();
+        }
     }
     private void Update()
     {
@@ -82,7 +89,10 @@ public class ModelRenderer : MonoBehaviour
         {
             GameObject child = this.model_.transform.GetChild(i).gameObject;
             string child_name = child.name;
+            //模型子物件沒有[]則跳過
             if (child_name.LastIndexOf('[') == -1 || child_name.LastIndexOf(']') == -1) continue;
+            //取出[]中的ID，判斷是否是wall, column, proxy, slab類別，否則歸入unanalyzed物件類別
+            //歸入walls_columns_gameobjects_, ground_gameobjects_, unanalyzed_gameobjects_的其中一個
             child_name=child.name.Substring(child.name.LastIndexOf('[') + 1, child.name.LastIndexOf(']') - child.name.LastIndexOf('[') - 1);
             if (DataBase.ifc_floor_data_[index_of_ifc_floor].WorkItemDataIfcWallStandardCase_.id_name_.Contains(child_name) == true || DataBase.ifc_floor_data_[index_of_ifc_floor].WorkItemDataIfcColumn_.id_name_.Contains(child_name) == true)
             {
@@ -101,7 +111,7 @@ public class ModelRenderer : MonoBehaviour
             }
         }
     }
-    private void SetWallsColumnsProgressGameObjects()
+    private void SetWallsColumnsCurrentProgressGameObjects()
     {
         for(int i = 0; i < this.walls_columns_gameobjects_.Count; i++)
         {
@@ -111,7 +121,7 @@ public class ModelRenderer : MonoBehaviour
             gameobject_id = gameobject_id.Substring(gameobject_id.LastIndexOf('[') + 1, gameobject_id.LastIndexOf(']') - gameobject_id.LastIndexOf('[') - 1);
             //check exist and add it to this.walls_columns_gameobjects_
             int index_of_classified_point_cloud_data = DataBase.FindIndexOfClassifiedPointCloudDataByIdName(gameobject_id);
-            if (DataBase.classified_point_cloud_data_[index_of_classified_point_cloud_data].exist_ == true) this.walls_columns_progress_gameobjects_.Add(this.walls_columns_gameobjects_[i]);
+            if (DataBase.classified_point_cloud_data_[index_of_classified_point_cloud_data].exist_ == true) this.walls_columns_current_progress_gameobjects_.Add(this.walls_columns_gameobjects_[i]);
         }
     }
     public void SetGroundProgressGameObjects()
@@ -169,7 +179,7 @@ public class ModelRenderer : MonoBehaviour
             };
             mesh.uv = uv;
             mesh_filter.mesh = mesh;
-            if (point_cloud_data.exist_ == true) mesh_renderer.material.color = Color.cyan;
+            if (point_cloud_data.exist_ == true) mesh_renderer.material.color = new Color(255f/255f,153f/255f,51f/255f,1f);
             else
             {
                 mesh_renderer.material.color = Color.white;
@@ -180,21 +190,36 @@ public class ModelRenderer : MonoBehaviour
     }
     public void SetGridLineGameObjects()
     {
-        //轉換該層樓的住線座標，創建柱線GameObjects
+        //轉換該層樓的住線座標，創建柱線GameObjects，創建柱線字體
         List<Line> grid_line = DataBase.ifc_floor_data_[DataBase.FindIndexOfIfcFloorDataByFloorNameByChosenFloorName()].grid_line_;
         for (int i = 0; i < grid_line.Count; i++)
         {
-            Transfer(grid_line[i]);
-            GameObject obj = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            Transfer(grid_line[i]);//轉換座標
+            //產生柱線
+            GameObject line_gobj = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             Vector3 direction = new Vector3(grid_line[i].point2_x_ - grid_line[i].point1_x_, grid_line[i].point2_y_ - grid_line[i].point1_y_, grid_line[i].point2_z_ - grid_line[i].point1_z_);
-            obj.name = "grid_line_" + i;
-            obj.transform.position = new Vector3(grid_line[i].mid_point_x_, this.max_y_of_ground_element + 0.01f, grid_line[i].mid_point_z_);
-            obj.transform.localScale = new Vector3(0.05f, direction.magnitude / 2f, 0.05f);
-            obj.transform.up = direction;
-            obj.GetComponent<MeshRenderer>().material.color = Color.black;
-            this.grid_line_gameobjects_.Add(obj);
+            line_gobj.name = "grid_line_" + i;
+            line_gobj.transform.position = new Vector3(grid_line[i].mid_point_x_, this.max_y_of_ground_element + 0.01f, grid_line[i].mid_point_z_);
+            line_gobj.transform.localScale = new Vector3(0.1f, direction.magnitude / 2f, 0.1f);
+            line_gobj.transform.up = direction;
+            line_gobj.GetComponent<MeshRenderer>().material.color = Color.black;
+            this.grid_line_gameobjects_.Add(line_gobj);
+
+            //產生柱線字體
+            GameObject line_name_gobj=new GameObject();
+            line_name_gobj.name = grid_line[i].name_;
+            line_name_gobj.transform.position = line_gobj.transform.position+direction/1.95f;
+            line_name_gobj.transform.rotation = Quaternion.Euler(new Vector3(90f, 0, 0));
+            line_name_gobj.AddComponent<MeshRenderer>();
+            line_name_gobj.AddComponent<TextMesh>();
+            line_name_gobj.GetComponent<TextMesh>().text = grid_line[i].name_;
+            line_name_gobj.GetComponent<TextMesh>().characterSize = 2;
+            line_name_gobj.GetComponent<TextMesh>().anchor = TextAnchor.MiddleCenter;
+            line_name_gobj.GetComponent<TextMesh>().alignment = TextAlignment.Center;
+            line_name_gobj.GetComponent<TextMesh>().color = Color.white;
+            this.grid_line_gameobjects_.Add(line_name_gobj);
         }
-        
+
     }
     private void Transfer(float[]point)
     {
@@ -226,11 +251,35 @@ public class ModelRenderer : MonoBehaviour
         }
         return max_y;
     }
+    public void ChangeRecordedGroundProgressGameObjectsColor()
+    {
+        for (int i = 0; i < DataBase.recorded_file_grid_id_name_.Count; i++)
+        {
+            GameObject.Find(DataBase.recorded_file_grid_id_name_[i]).GetComponent<MeshRenderer>().material.color = new Color(179f / 255f, 71f / 255f, 0f, 1);
+        }
+    }
+    public void SetWallsColumnsRecordedProgress()
+    {
+        for (int i = 0; i < DataBase.recorded_file_wall_id_name_.Count; i++)
+        {
+            string gobj_name = this.model_hashtable_[DataBase.recorded_file_wall_id_name_[i]].ToString();
+            GameObject gobj = GameObject.Find(gobj_name);
+            this.walls_columns_recorded_progress_gameobjects_.Add(gobj);
+            if (this.walls_columns_current_progress_gameobjects_.IndexOf(gobj) != -1) this.walls_columns_current_progress_gameobjects_.RemoveAt(this.walls_columns_current_progress_gameobjects_.IndexOf(gobj));//current progress gameobjects contain previous wall preogress gameobject; thus, remove it from current progress gameobjects.
+        }
+        for (int i = 0; i < DataBase.recorded_file_column_id_name_.Count; i++)
+        {
+            string gobj_name = this.model_hashtable_[DataBase.recorded_file_column_id_name_[i]].ToString();
+            GameObject gobj = GameObject.Find(gobj_name);
+            this.walls_columns_recorded_progress_gameobjects_.Add(gobj);
+            if (this.walls_columns_current_progress_gameobjects_.IndexOf(gobj) != -1) this.walls_columns_current_progress_gameobjects_.RemoveAt(this.walls_columns_current_progress_gameobjects_.IndexOf(gobj));//current progress gameobjects contain previous column preogress gameobject; thus, remove it from current progress gameobjects.
+        }
+    }
 
-    #region Functions for Toggles
+    #region FUNCTIONS FOR TOGGLES
     public void ChangeWallsColumnsVisibility()
     {
-        if (walls_columns_toggle_.isOn == true)
+        if (GameObject.Find("Walls_Columns_Toggle").GetComponent<Toggle>().isOn == true)
         {
             for(int i = 0; i < this.walls_columns_gameobjects_.Count; i++)
             {
@@ -247,7 +296,7 @@ public class ModelRenderer : MonoBehaviour
     }
     public void ChangeGroundVisibility()
     {
-        if (slabs_toggle_.isOn == true)
+        if (GameObject.Find("Slabs_Toggle").GetComponent<Toggle>().isOn == true)
         {
             for(int i = 0; i < this.ground_gameobjects_.Count; i++)
             {
@@ -264,7 +313,7 @@ public class ModelRenderer : MonoBehaviour
     }
     public void ChangeUnanalyzedVisibility()
     {
-        if (others_toggle_.isOn == true)
+        if (GameObject.Find("Others_Toggle").GetComponent<Toggle>().isOn == true)
         {
             for (int i = 0; i < this.unanalyzed_gameobjects_.Count; i++)
             {
@@ -281,24 +330,32 @@ public class ModelRenderer : MonoBehaviour
     }
     public void ChangeWallsColumnsProgressVisibility()
     {
-        if (walls_columns_progress_toggle_.isOn == true)
+        if (GameObject.Find("Walls_Columns_Progress_Toggle").GetComponent<Toggle>().isOn == true)
         {
-            for (int i = 0; i < this.walls_columns_progress_gameobjects_.Count; i++)
+            for (int i = 0; i < this.walls_columns_current_progress_gameobjects_.Count; i++)
             {
-                if (this.walls_columns_progress_gameobjects_[i].GetComponent<MeshRenderer>() != null) this.walls_columns_progress_gameobjects_[i].GetComponent<MeshRenderer>().material.color=Color.blue;
+                if (this.walls_columns_current_progress_gameobjects_[i].GetComponent<MeshRenderer>() != null) this.walls_columns_current_progress_gameobjects_[i].GetComponent<MeshRenderer>().material.color=new Color(255f / 255f, 153f / 255f, 51f / 255f, 1f);
+            }
+            for(int i = 0; i < this.walls_columns_recorded_progress_gameobjects_.Count; i++)
+            {
+                if (this.walls_columns_recorded_progress_gameobjects_[i].GetComponent<MeshRenderer>() != null) this.walls_columns_recorded_progress_gameobjects_[i].GetComponent<MeshRenderer>().material.color = new Color(179f / 255f, 71f / 255f, 0f, 1);
             }
         }
         else
         {
-            for (int i = 0; i < this.walls_columns_progress_gameobjects_.Count; i++)
+            for (int i = 0; i < this.walls_columns_current_progress_gameobjects_.Count; i++)
             {
-                if (this.walls_columns_progress_gameobjects_[i].GetComponent<MeshRenderer>() != null) this.walls_columns_progress_gameobjects_[i].GetComponent<MeshRenderer>().material.color = Color.white;
+                if (this.walls_columns_current_progress_gameobjects_[i].GetComponent<MeshRenderer>() != null) this.walls_columns_current_progress_gameobjects_[i].GetComponent<MeshRenderer>().material.color = Color.white;
+            }
+            for (int i = 0; i < this.walls_columns_recorded_progress_gameobjects_.Count; i++)
+            {
+                if (this.walls_columns_recorded_progress_gameobjects_[i].GetComponent<MeshRenderer>() != null) this.walls_columns_recorded_progress_gameobjects_[i].GetComponent<MeshRenderer>().material.color = Color.white;
             }
         }
     }
     public void ChangeGroundProgressVisibility()
     {
-        if (slabs_progress_toggle_.isOn == true)
+        if (GameObject.Find("Slabs_Progress_Toggle").GetComponent<Toggle>().isOn == true)
         {
             for (int i = 0; i < this.ground_progress_gameobjects_.Count; i++)
             {
@@ -316,7 +373,7 @@ public class ModelRenderer : MonoBehaviour
     public void ChangeGridLinesVisibility()
     {
         
-        if (grid_line_toggle_.isOn == true)
+        if (GameObject.Find("Grid_Line_Toggle").GetComponent<Toggle>().isOn == true)
         {
             for (int i = 0; i < this.grid_line_gameobjects_.Count; i++)
             {
@@ -331,6 +388,77 @@ public class ModelRenderer : MonoBehaviour
             }
         }
 
+    }
+    #endregion
+    #region FUNCTIONS FOR BUTTONS
+    public void OutputRecordingFile()
+    {
+        string data_path = GameObject.Find("OutputFile_InputField").GetComponent<InputField>().text;
+        if (!Directory.Exists(data_path)) return;
+        if (data_path[data_path.Length - 1] == '/') data_path.Remove(data_path.Length-1,1);
+        StreamWriter sw = new StreamWriter(data_path+"/ConstructionProgressRecordedFile.txt");
+        sw.WriteLine("#TSMC BIM LIDAR PROGRESS TRACKING#");
+        sw.WriteLine(DataBase.chosen_floor_name_);
+        sw.WriteLine(DataBase.date_[0] + "/" + DataBase.date_[1] + "/" + DataBase.date_[2]);
+        //Finished wall. Leave its id behind #WALL=
+        List<string> wall_id = DataBase.ifc_floor_data_[DataBase.FindIndexOfIfcFloorDataByFloorNameByChosenFloorName()].WorkItemDataIfcWallStandardCase_.id_name_;
+        for (int i = 0; i < wall_id.Count; i++)
+        {
+            int index = DataBase.FindIndexOfClassifiedPointCloudDataByIdName(wall_id[i]);
+            if (index == -1) continue;
+            if (DataBase.classified_point_cloud_data_[index].exist_ == true) sw.WriteLine("#WALL=" + wall_id[i]);
+        }
+        //Finished column. Leave its id behind #COLUMN=
+        List<string> column_id = DataBase.ifc_floor_data_[DataBase.FindIndexOfIfcFloorDataByFloorNameByChosenFloorName()].WorkItemDataIfcColumn_.id_name_;
+        for (int i = 0; i < column_id.Count; i++)
+        {
+            int index = DataBase.FindIndexOfClassifiedPointCloudDataByIdName(column_id[i]);
+            if (index == -1) continue;
+            if (DataBase.classified_point_cloud_data_[index].exist_ == true) sw.WriteLine("#COLUMN=" + column_id[i]);
+        }
+        //Finished ground quad. Leave its id behind #GROUND=
+        List<string> grid_id = DataBase.ifc_floor_data_[DataBase.FindIndexOfIfcFloorDataByFloorNameByChosenFloorName()].WorkItemDataGrid_.id_name_;
+        for (int i = 0; i < grid_id.Count; i++)
+        {
+            int index = DataBase.FindIndexOfClassifiedPointCloudDataByIdName(grid_id[i]);
+            if (index == -1) break;
+            if (DataBase.classified_point_cloud_data_[index].exist_ == true) sw.WriteLine("#GROUND=" + grid_id[i]);
+        }
+        //Contain recorded file progress
+        if (DataBase.recorded_file_chosen_floor_name_ == DataBase.chosen_floor_name_)
+        {
+            for(int i = 0; i < DataBase.recorded_file_wall_id_name_.Count; i++)
+            {
+                sw.WriteLine("#WALL=" + DataBase.recorded_file_wall_id_name_[i]);
+            }
+            for(int i = 0; i < DataBase.recorded_file_column_id_name_.Count; i++)
+            {
+                sw.WriteLine("#COLUMN=" + DataBase.recorded_file_column_id_name_[i]);
+            }
+            for(int i = 0; i < DataBase.recorded_file_grid_id_name_.Count; i++)
+            {
+                sw.WriteLine("#GROUND=" + DataBase.recorded_file_grid_id_name_[i]);
+            }
+        }
+        sw.Flush();
+        sw.Close();
+        Debug.Log("Output is done.");
+    }
+    public void ScreenShot()
+    {
+        string data_path = GameObject.Find("SreenShot_InputField").GetComponent<InputField>().text;
+        if (!Directory.Exists(data_path)) return;
+        if (data_path[data_path.Length - 1] == '/') data_path.Remove(data_path.Length-1,1);
+        string time = Convert.ToString(System.DateTime.Now);
+        for(int i = 0; i < time.Length; i++)
+        {
+            if(time[i]=='/' || time[i] == ':')
+            {
+                time = time.Remove(i, 1);
+                i--;
+            }
+        }
+        ScreenCapture.CaptureScreenshot(data_path+"/ConstructionProgressShot"+time+".png");
     }
     #endregion
 

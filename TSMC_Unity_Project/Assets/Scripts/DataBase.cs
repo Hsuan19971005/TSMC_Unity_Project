@@ -9,6 +9,14 @@ public static class DataBase
     public static List<float[]> real_points_ = new List<float[]>();
     public static string model_name_;
     public static string chosen_floor_name_;
+    public static string[] date_ = new string[3];//year-month-day
+    #region RECORDING FILE INFORMATION
+    public static string recorded_file_chosen_floor_name_;
+    public static List<string> recorded_file_wall_id_name_=new List<string>();
+    public static List<string> recorded_file_column_id_name_ = new List<string>();
+    public static List<string> recorded_file_grid_id_name_ = new List<string>();
+    public static string recorded_file_date_;//year-month-day
+    #endregion
     public static int FindIndexOfIfcFloorDataByFloorNameByChosenFloorName()
     {
         for(int i = 0; i < ifc_floor_data_.Count; i++)
