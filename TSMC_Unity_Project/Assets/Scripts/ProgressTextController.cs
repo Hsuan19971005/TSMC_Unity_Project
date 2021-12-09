@@ -40,6 +40,9 @@ public class ProgressTextController : MonoBehaviour
         GameObject.Find("Slab_Total_Number").GetComponent<Text>().text = Convert.ToString(DataBase.ifc_floor_data_[index_of_floor].WorkItemDataGrid_.id_name_.Count);
         GameObject.Find("Slab_Finished_Number").GetComponent<Text>().text = Convert.ToString(progress.CountOneFloorGridExistNumber(DataBase.ifc_floor_data_[index_of_floor], DataBase.classified_point_cloud_data_));
         GameObject.Find("Slab_Ratio_Number").GetComponent<Text>().text = Convert.ToString(Math.Round(progress.CountOneFloorGridExistNumber(DataBase.ifc_floor_data_[index_of_floor], DataBase.classified_point_cloud_data_) / (float)DataBase.ifc_floor_data_[index_of_floor].WorkItemDataGrid_.id_name_.Count * 100f)) + " %";
+        //Fake**************************************************************************************************
+        //GameObject.Find("Slab_Finished_Number").GetComponent<Text>().text = Convert.ToString(DataBase.ifc_floor_data_[index_of_floor].WorkItemDataGrid_.id_name_.Count);
+        //GameObject.Find("Slab_Ratio_Number").GetComponent<Text>().text ="100 %";
     }
     public void TasksOfCumulativeProgress()
     {
@@ -103,5 +106,10 @@ public class ProgressTextController : MonoBehaviour
         GameObject.Find("Slab_Ratio_Number").GetComponent<Text>().text = Convert.ToString(slab_new_ratio) + " %";
         GameObject.Find("Slab_Cumulative_Finished_Number").GetComponent<Text>().text = Convert.ToString(slab_new_finished + slab_recorded_finished);
         GameObject.Find("Slab_Cumulative_Ratio_Number").GetComponent<Text>().text = Convert.ToString(slab_cumulative_ratio) + " %";
+        //Fake********************************************************************
+        //GameObject.Find("Slab_Finished_Number").GetComponent<Text>().text = Convert.ToString(slab_total);
+        //GameObject.Find("Slab_Ratio_Number").GetComponent<Text>().text = "100 %";
+        //GameObject.Find("Slab_Cumulative_Finished_Number").GetComponent<Text>().text = Convert.ToString(slab_total);
+        //GameObject.Find("Slab_Cumulative_Ratio_Number").GetComponent<Text>().text = "100 %";
     }
 }

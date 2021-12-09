@@ -4,6 +4,7 @@ using UnityEngine;
 using System;
 using System.IO;
 using UnityEngine.UI;
+using SFB;
 
 
 public class ModelRenderer : MonoBehaviour
@@ -44,6 +45,7 @@ public class ModelRenderer : MonoBehaviour
     private void Start()
     {
         SetModel(DataBase.chosen_floor_name_);
+        DeleteUnanalyzedModel();
         SetModelHashtable();
         DivideModelChildrenIntoCorrespondingGameObjects();
         SetWallsColumnsCurrentProgressGameObjects();
@@ -62,6 +64,11 @@ public class ModelRenderer : MonoBehaviour
             SetWallsColumnsRecordedProgress();
             ChangeWallsColumnsProgressVisibility();
         }
+        //Command line control output screenshot
+        if (DataBase.output_file_path_ != null)
+        {
+            StartCoroutine(CommandLineScreenShot());
+        }
     }
     private void Update()
     {
@@ -70,6 +77,25 @@ public class ModelRenderer : MonoBehaviour
     private void SetModel(string model_name)
     {
         this.model_ = GameObject.Find(model_name);
+        //Disable the camera in FBX model
+        for(int i = 0; i < this.model_.transform.childCount; i++)
+        {
+            if(this.model_.transform.GetChild(i).name== "3D 視圖: {3D}")
+            {
+                this.model_.transform.GetChild(i).gameObject.SetActive(false);
+                return;
+            }
+        }
+    }
+    private void DeleteUnanalyzedModel()
+    {
+        for(int i = 0; i < DataBase.ifc_floor_data_.Count; i++)
+        {
+            if (DataBase.ifc_floor_data_[i].floor_name_ == DataBase.chosen_floor_name_) continue;
+            GameObject gobj = GameObject.Find(DataBase.ifc_floor_data_[i].floor_name_);
+            if (gobj == null) continue;
+            gobj.SetActive(false);
+        }
     }
     private void SetModelHashtable()
     {
@@ -121,6 +147,7 @@ public class ModelRenderer : MonoBehaviour
             gameobject_id = gameobject_id.Substring(gameobject_id.LastIndexOf('[') + 1, gameobject_id.LastIndexOf(']') - gameobject_id.LastIndexOf('[') - 1);
             //check exist and add it to this.walls_columns_gameobjects_
             int index_of_classified_point_cloud_data = DataBase.FindIndexOfClassifiedPointCloudDataByIdName(gameobject_id);
+            if (index_of_classified_point_cloud_data == -1) continue;
             if (DataBase.classified_point_cloud_data_[index_of_classified_point_cloud_data].exist_ == true) this.walls_columns_current_progress_gameobjects_.Add(this.walls_columns_gameobjects_[i]);
         }
     }
@@ -179,12 +206,14 @@ public class ModelRenderer : MonoBehaviour
             };
             mesh.uv = uv;
             mesh_filter.mesh = mesh;
-            if (point_cloud_data.exist_ == true) mesh_renderer.material.color = new Color(255f/255f,153f/255f,51f/255f,1f);
+            if (point_cloud_data.exist_ == true) mesh_renderer.material.color = new Color(255f/255f,153f/255f,51f/255f,1f);//Orange
             else
             {
                 mesh_renderer.material.color = Color.white;
             }
             this.ground_progress_gameobjects_.Add(obj);
+            //Fake****************************************************************************
+            //mesh_renderer.material.color = new Color(179f / 255f, 71f / 255f, 0f, 1);
         }
 
     }
@@ -206,18 +235,31 @@ public class ModelRenderer : MonoBehaviour
             this.grid_line_gameobjects_.Add(line_gobj);
 
             //產生柱線字體
-            GameObject line_name_gobj=new GameObject();
-            line_name_gobj.name = grid_line[i].name_;
-            line_name_gobj.transform.position = line_gobj.transform.position+direction/1.95f;
-            line_name_gobj.transform.rotation = Quaternion.Euler(new Vector3(90f, 0, 0));
-            line_name_gobj.AddComponent<MeshRenderer>();
-            line_name_gobj.AddComponent<TextMesh>();
-            line_name_gobj.GetComponent<TextMesh>().text = grid_line[i].name_;
-            line_name_gobj.GetComponent<TextMesh>().characterSize = 2;
-            line_name_gobj.GetComponent<TextMesh>().anchor = TextAnchor.MiddleCenter;
-            line_name_gobj.GetComponent<TextMesh>().alignment = TextAlignment.Center;
-            line_name_gobj.GetComponent<TextMesh>().color = Color.white;
-            this.grid_line_gameobjects_.Add(line_name_gobj);
+            GameObject line_name_gobj1=new GameObject();
+            line_name_gobj1.name = grid_line[i].name_+"_1";
+            line_name_gobj1.transform.position = line_gobj.transform.position+direction/1.95f;
+            line_name_gobj1.transform.rotation = Quaternion.Euler(new Vector3(90f, 0, 0));
+            line_name_gobj1.AddComponent<MeshRenderer>();
+            line_name_gobj1.AddComponent<TextMesh>();
+            line_name_gobj1.GetComponent<TextMesh>().text = grid_line[i].name_;
+            line_name_gobj1.GetComponent<TextMesh>().characterSize = 2;
+            line_name_gobj1.GetComponent<TextMesh>().anchor = TextAnchor.MiddleCenter;
+            line_name_gobj1.GetComponent<TextMesh>().alignment = TextAlignment.Center;
+            line_name_gobj1.GetComponent<TextMesh>().color = Color.white;
+            this.grid_line_gameobjects_.Add(line_name_gobj1);
+
+            GameObject line_name_gobj2 = new GameObject();
+            line_name_gobj2.name = grid_line[i].name_ + "_2";
+            line_name_gobj2.transform.position = line_gobj.transform.position + direction / 1.95f*-1f;
+            line_name_gobj2.transform.rotation = Quaternion.Euler(new Vector3(90f, 0, 0));
+            line_name_gobj2.AddComponent<MeshRenderer>();
+            line_name_gobj2.AddComponent<TextMesh>();
+            line_name_gobj2.GetComponent<TextMesh>().text = grid_line[i].name_;
+            line_name_gobj2.GetComponent<TextMesh>().characterSize = 2;
+            line_name_gobj2.GetComponent<TextMesh>().anchor = TextAnchor.MiddleCenter;
+            line_name_gobj2.GetComponent<TextMesh>().alignment = TextAlignment.Center;
+            line_name_gobj2.GetComponent<TextMesh>().color = Color.white;
+            this.grid_line_gameobjects_.Add(line_name_gobj2);
         }
 
     }
@@ -255,7 +297,7 @@ public class ModelRenderer : MonoBehaviour
     {
         for (int i = 0; i < DataBase.recorded_file_grid_id_name_.Count; i++)
         {
-            GameObject.Find(DataBase.recorded_file_grid_id_name_[i]).GetComponent<MeshRenderer>().material.color = new Color(179f / 255f, 71f / 255f, 0f, 1);
+            GameObject.Find(DataBase.recorded_file_grid_id_name_[i]).GetComponent<MeshRenderer>().material.color = new Color(179f / 255f, 71f / 255f, 0f, 1);//Brown
         }
     }
     public void SetWallsColumnsRecordedProgress()
@@ -274,6 +316,16 @@ public class ModelRenderer : MonoBehaviour
             this.walls_columns_recorded_progress_gameobjects_.Add(gobj);
             if (this.walls_columns_current_progress_gameobjects_.IndexOf(gobj) != -1) this.walls_columns_current_progress_gameobjects_.RemoveAt(this.walls_columns_current_progress_gameobjects_.IndexOf(gobj));//current progress gameobjects contain previous column preogress gameobject; thus, remove it from current progress gameobjects.
         }
+    }
+    IEnumerator CommandLineScreenShot()
+    {
+        Camera myCam = Camera.main;
+        myCam.transform.position = new Vector3(-80, 250, -200);
+        myCam.transform.rotation = Quaternion.Euler(new Vector3(60, 0, 0));
+        GameObject.Find("SreenShot_InputField").GetComponent<InputField>().text = DataBase.output_file_path_;
+        GameObject.Find("Screen_Shot_Button").GetComponent<Button>().onClick.Invoke();
+        yield return null;
+        GameObject.Find("Reposition_Button").GetComponent<Button>().onClick.Invoke();
     }
 
     #region FUNCTIONS FOR TOGGLES
@@ -334,11 +386,11 @@ public class ModelRenderer : MonoBehaviour
         {
             for (int i = 0; i < this.walls_columns_current_progress_gameobjects_.Count; i++)
             {
-                if (this.walls_columns_current_progress_gameobjects_[i].GetComponent<MeshRenderer>() != null) this.walls_columns_current_progress_gameobjects_[i].GetComponent<MeshRenderer>().material.color=new Color(255f / 255f, 153f / 255f, 51f / 255f, 1f);
+                if (this.walls_columns_current_progress_gameobjects_[i].GetComponent<MeshRenderer>() != null) this.walls_columns_current_progress_gameobjects_[i].GetComponent<MeshRenderer>().material.color=new Color(255f / 255f, 153f / 255f, 51f / 255f, 1f);//Orange
             }
             for(int i = 0; i < this.walls_columns_recorded_progress_gameobjects_.Count; i++)
             {
-                if (this.walls_columns_recorded_progress_gameobjects_[i].GetComponent<MeshRenderer>() != null) this.walls_columns_recorded_progress_gameobjects_[i].GetComponent<MeshRenderer>().material.color = new Color(179f / 255f, 71f / 255f, 0f, 1);
+                if (this.walls_columns_recorded_progress_gameobjects_[i].GetComponent<MeshRenderer>() != null) this.walls_columns_recorded_progress_gameobjects_[i].GetComponent<MeshRenderer>().material.color = new Color(179f / 255f, 71f / 255f, 0f, 1);//Brown
             }
         }
         else
@@ -391,13 +443,14 @@ public class ModelRenderer : MonoBehaviour
     }
     #endregion
     #region FUNCTIONS FOR BUTTONS
-    public void OutputRecordingFile()
+    public void OutputRecordedFile()
     {
         string data_path = GameObject.Find("OutputFile_InputField").GetComponent<InputField>().text;
         if (!Directory.Exists(data_path)) return;
         if (data_path[data_path.Length - 1] == '/') data_path.Remove(data_path.Length-1,1);
         StreamWriter sw = new StreamWriter(data_path+"/ConstructionProgressRecordedFile.txt");
         sw.WriteLine("#TSMC BIM LIDAR PROGRESS TRACKING#");
+        sw.WriteLine(DataBase.point_cloud_file_path_);
         sw.WriteLine(DataBase.chosen_floor_name_);
         sw.WriteLine(DataBase.date_[0] + "/" + DataBase.date_[1] + "/" + DataBase.date_[2]);
         //Finished wall. Leave its id behind #WALL=
@@ -459,6 +512,16 @@ public class ModelRenderer : MonoBehaviour
             }
         }
         ScreenCapture.CaptureScreenshot(data_path+"/ConstructionProgressShot"+time+".png");
+    }
+    public void ScreenShotFileBrowser()
+    {
+        var paths = StandaloneFileBrowser.OpenFolderPanel("Screen shot folder", "", false);
+        GameObject.Find("SreenShot_InputField").GetComponent<InputField>().text = paths[0];
+    }
+    public void OutputRecordedFileBrowser()
+    {
+        var paths = StandaloneFileBrowser.OpenFolderPanel("Recorded file folder", "", false);
+        GameObject.Find("OutputFile_InputField").GetComponent<InputField>().text = paths[0];
     }
     #endregion
 

@@ -16,7 +16,9 @@ public static class DataBase
     public static List<string> recorded_file_column_id_name_ = new List<string>();
     public static List<string> recorded_file_grid_id_name_ = new List<string>();
     public static string recorded_file_date_;//year-month-day
+    public static string point_cloud_file_path_;//Point Cloud File data path
     #endregion
+    public static string output_file_path_;//Command line output file folder path
     public static int FindIndexOfIfcFloorDataByFloorNameByChosenFloorName()
     {
         for(int i = 0; i < ifc_floor_data_.Count; i++)
